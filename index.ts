@@ -93,6 +93,44 @@ app.post("/login", async (req, res) => {
   }
 })
 
+// ?: Implement Filtering and Sorting for the To-Do List
+app.get("/todos", authenticateToken as RequestHandler, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, sortBy = "createdAt", order = "asc", search = "" } = req.query
+    const userId = ((req as AuthenticatedRequest).user as JwtPayload).id
+
+    const todos = await prisma.todo.findMany({
+      where: {
+        userId,
+        OR: [
+          { title: { contains: search as string } },
+          { description: { contains: search as string } }
+        ]
+      },
+      skip: (Number(page) - 1) * Number(limit),
+      take: Number(limit),
+      orderBy: { [sortBy as string]: order === "asc" ? "asc" : "desc" }
+    })
+
+    const total = await prisma.todo.count({
+      where: {
+        userId,
+        OR: [
+          { title: { contains: search as string } },
+          { description: { contains: search as string } }
+        ]
+      }
+    })
+
+    res.status(200).json({
+      data: todos,
+      page: Number(page),
+      limit: Number(limit),
+    })
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+})
 
 // Get all todos
 app.get("/todos", authenticateToken as RequestHandler, async (req, res) => {
