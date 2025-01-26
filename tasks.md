@@ -24,7 +24,7 @@
 
 ## Bonus Tasks:
 
-- [ ] Implement filtering and sorting for the to-do list
-- [ ] Implement unit tests for the API
-- [ ] Implement rate limiting and throttling for the API
-- [ ] Implement refresh token mechanism for the authentication
+- [x] Implement filtering and sorting for the to-do list
+- [x] Implement unit tests for the API
+- [x] Implement rate limiting and throttling for the API
+- [x] Implement refresh token mechanism for the authentication

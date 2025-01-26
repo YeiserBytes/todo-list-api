@@ -97,7 +97,7 @@ const generateRefreshToken = async (userId: number) => {
 app.post("/refresh-token", async (req, res) => {
   const { token } = req.body;
 
-  if (!token) res.status(401).json({ message: "Refresh token required" });
+if (!token) res.status(401).json({ message: "Refresh token required" });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
@@ -135,20 +135,22 @@ app.post("/login", async (req, res) => {
 // ?: Implement Filtering and Sorting for the To-Do List
 app.get("/todos", authenticateToken as RequestHandler, async (req, res) => {
   try {
-    const { page = 1, limit = 10, sortBy = "createdAt", order = "asc", search = "" } = req.query
+    const validSortFields = ['id', 'title', 'description'];
+    const { page = 1, limit = 10, sortBy = "id", order = "asc", search = "" } = req.query;
+    const sortField = validSortFields.includes(String(sortBy)) ? String(sortBy) : 'id';
     const userId = ((req as AuthenticatedRequest).user as JwtPayload).id
 
     const todos = await prisma.todo.findMany({
-      where: {
+    where: {
         userId,
         OR: [
-          { title: { contains: search as string } },
-          { description: { contains: search as string } }
+        { title: { contains: String(search) } },
+        { description: { contains: String(search) } }
         ]
-      },
-      skip: (Number(page) - 1) * Number(limit),
-      take: Number(limit),
-      orderBy: { [sortBy as string]: order === "asc" ? "asc" : "desc" }
+    },
+    skip: (Number(page) - 1) * Number(limit),
+    take: Number(limit),
+    orderBy: { [sortField]: order === 'desc' ? 'desc' : 'asc' }
     })
 
     const total = await prisma.todo.count({
@@ -166,36 +168,10 @@ app.get("/todos", authenticateToken as RequestHandler, async (req, res) => {
       page: Number(page),
       limit: Number(limit),
     })
-  } catch (error) {
-    res.status(500).json({ message: 'Internal server error' });
-  }
-})
-
-// Get all todos
-app.get("/todos", authenticateToken as RequestHandler, async (req, res) => {
-  try {
-    const { page = 1, limit = 10 } = req.query
-    const userId = ((req as AuthenticatedRequest).user as JwtPayload).id
-
-    const todos = await prisma.todo.findMany({
-      where: { userId },
-      skip: (Number(page) - 1) * Number(limit),
-      take: Number(limit),
-    })
-
-    const total = await prisma.todo.count({
-      where: { userId }
-    })
-
-    res.status(200).json({
-      data: todos,
-      page: Number(page),
-      limit: Number(limit),
-      total
-    })
-  } catch (error) {
-    res.status(500).json({ message: 'Internal server error' });
-  }
+} catch (error) {
+console.error('Error in /todos:', error);
+res.status(500).json({ message: 'Internal server error', error: String(error) });
+}
 })
 
 // Get a todo
@@ -273,3 +249,5 @@ app.delete("/todo/:id", authenticateToken as RequestHandler, async (req, res) =>
 app.listen(PORT, () => {
   console.log(`Server is running on port http://localhost:${PORT}`)
 })
+
+export default app
