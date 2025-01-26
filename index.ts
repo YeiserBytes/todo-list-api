@@ -5,8 +5,15 @@ import { PrismaClient } from '@prisma/client'
 import bodyParser from 'body-parser'
 import dotenv from 'dotenv'
 import { z } from 'zod'
+import rateLimit from "express-rate-limit";
 
 dotenv.config()
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // Máximo 100 solicitudes por IP
+  message: { message: "Too many requests. Please try again later." },
+});
 
 const app: Application = express()
 const prisma = new PrismaClient()
@@ -14,6 +21,7 @@ const PORT = process.env.PORT || 3000
 const JWT_SECRET = process.env.JWT_SECRET || "default_secret"
 
 app.use(bodyParser.json())
+app.use(limiter);
 
 interface AuthenticatedRequest extends Request {
   user?: JwtPayload | string
