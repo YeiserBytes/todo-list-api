@@ -10,6 +10,11 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
+# Database
+dev.db
+dev.db-journal
+migrations/
+
 # Caches
 
 .cache
@@ -18,7 +23,7 @@ lerna-debug.log*
 
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
-# Runtime data
+
 
 pids
 _.pid
