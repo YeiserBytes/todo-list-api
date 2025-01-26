@@ -1,4 +1,0 @@
-[test]
-preload = ["./setup.ts"]
-environment = "NODE_ENV=test"
-
