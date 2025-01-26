@@ -5,7 +5,6 @@ import { PrismaClient } from '@prisma/client'
 import bodyParser from 'body-parser'
 import dotenv from 'dotenv'
 import { z } from 'zod'
-import { password } from 'bun'
 
 dotenv.config()
 
@@ -77,21 +76,53 @@ app.post("/register", async (req, res) => {
   }
 })
 
-// Login
+// Generate Refresh Token
+const generateRefreshToken = async (userId: number) => {
+  const refreshToken = jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });
+  await prisma.refreshToken.create({
+    data: { token: refreshToken, userId },
+  });
+  return refreshToken;
+};
+
+// Refresh Token Endpoint
+app.post("/refresh-token", async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) res.status(401).json({ message: "Refresh token required" });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const storedToken = await prisma.refreshToken.findUnique({
+      where: { token },
+    });
+
+    if (!storedToken) res.status(403).json({ message: "Invalid refresh token" });
+
+    const accessToken = jwt.sign({ id: decoded.userId }, JWT_SECRET, { expiresIn: "1h" });
+
+    res.status(200).json({ accessToken });
+  } catch (error) {
+    res.status(403).json({ message: "Invalid refresh token" });
+  }
+});
+
+// Update /login to include refresh token
 app.post("/login", async (req, res) => {
   try {
-    const { email, password } = loginSchema.parse(req.body)
+    const { email, password } = loginSchema.parse(req.body);
 
-    const user = await prisma.user.findUnique({ where: { email } })
-    if (!user || !(await bcrypt.compare(password, user.password))) res.status(401).json({ message: 'Invalid credentials.' })
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !(await bcrypt.compare(password, user.password))) res.status(401).json({ message: "Invalid credentials." });
 
-    const token = jwt.sign({ id: user?.id, email: user?.email }, JWT_SECRET, { expiresIn: '1h' })
+    const accessToken = jwt.sign({ id: user?.id, email: user?.email }, JWT_SECRET, { expiresIn: "1h" });
+    const refreshToken = await generateRefreshToken(Number(user?.id));
 
-    res.status(200).json({ token })
+    res.status(200).json({ accessToken, refreshToken });
   } catch (error) {
-    res.status(400).json({ message: error || 'Invalid request' });
+    res.status(400).json({ message: error || "Invalid request" });
   }
-})
+});
 
 // ?: Implement Filtering and Sorting for the To-Do List
 app.get("/todos", authenticateToken as RequestHandler, async (req, res) => {
