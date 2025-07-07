@@ -61,6 +61,13 @@ const todoSchema = z.object({
   description: z.string().min(1, "Description is required")
 })
 
+// Health
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    message: "Is running!!!"
+  })
+})
+
 // Register
 app.post("/register", async (req, res) => {
   try {
